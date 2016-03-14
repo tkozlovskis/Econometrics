@@ -7,6 +7,7 @@ output: html_document
 Mūsų užduotis buvo atlikti išsamią tiesinę regresiją. Lygtis reikalinga prekyboms agentams, kad geriau suprastų kokią įtaką skirtingos charakteristikos daro galutinei kainai.
 
 Visų pirma, turime įsivesti duomenis į savo darbo aplinką ir juos apžvelgti.
+
 ```{r}
 duom=read.csv2(file="C:/Users/TOMAS/Desktop/R/Destytojo/task4/data.csv")
 head(duom)
@@ -26,13 +27,6 @@ Deja, šiuo atveju taip daryti negalime, dėl to, kad nežinome ar garso izoliac
 ```{r}
 duom$garsoIzoliacija<-NULL
 ```
-
-
-
-boxplot(duom$kaina)
-boxplot(duom$atstumasIkiPrekybosCentro)
-boxplot(duom$silumosLaidumas)
-boxplot(duom$plotas)
 
 Visi duomenys turi išskirtis - reikšmes, kurios nuo didžiosios dalies reikšmių yra stipriai nutolusios. Tam, kad šios reikšmės stipriai neiškreiptų modelio, jas reikia surasti ir pašalinti. Tam naudosime "influence.measures" funkciją.
 
@@ -63,52 +57,65 @@ duom<-duom[-ids,]
 ```
 
 
-Sukuriame kelis modelius. Atstumas iki prekybos centro yra pašalinamas visuose modeliuose, nes jis yra nereikšmingas.
+Sukuriame kelis modelius. . Atstumas iki prekybos centro yra pašalinamas visuose modeliuose, nes jis yra nereikšmingas.
 
 ```{r}
-mod2<-lm(duom$kaina~duom$plotas+duom$aukstas+duom$silumosLaidumas)
+mod1<-lm(duom$kaina~duom$plotas+duom$aukstas+duom$silumosLaidumas)
+summary(mod1)
+
+mod2<-lm(log(duom$kaina)~log(duom$plotas)+log(duom$aukstas)+log(duom$silumosLaidumas))
 summary(mod2)
 
-mod3<-lm(log(duom$kaina)~log(duom$plotas)+log(duom$aukstas)+log(duom$silumosLaidumas))
+
+mod3<-lm(duom$kaina~I(duom$plotas)+I(duom$aukstas)+I(duom$aukstas^2)+I(duom$silumosLaidumas))
 summary(mod3)
 
-
-mod4<-lm(duom$kaina~I(duom$plotas)+I(duom$aukstas)+I(duom$aukstas^2)+I(duom$silumosLaidumas))
+mod4<-lm(duom$kaina~I(duom$plotas)+I(duom$aukstas^2)+I(duom$silumosLaidumas))
 summary(mod4)
 ```
 
 Geriausią modelį išsirenkame pagal "R-Squared" ir "Akaike's Information Criteria" koeficientus.
+
 ```{r}
+summary(mod1)$r.squared
 summary(mod2)$r.squared
 summary(mod3)$r.squared
 summary(mod4)$r.squared
 
-AIC(mod2)
+AIC(mod1)
+AIC(mod3)
 AIC(mod4)
 ```
 
-par(mfrow=c(2,2))
-plotai<-plot(duom$kaina~duom$plotas+duom$aukstas+duom$silumosLaidumas)
+Patikrinę šiuos parametrus, renkamės trečią modelį "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)", nes jo R-Squared didžiausias iš visų, o AIC mažiausias.
 
-
-Patikrinę šiuos parametrus, renkamės ketvirtą modelį "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)", nes jo R-Squared didžiausias iš visų, o AIC mažiausias.
-
-Toliau tikrinsime kitus modelio patikimumo parametrus.
+Toliau tikrinsime mūsų pasirinkto modelio patikimumo parametrus.
 
 Visų pirma tikriname modelio liekanų pasiskirstymo normalumą.
+
 ```{r}
-histmod4<-hist(mod4$res, probability=TRUE)
-lines(density(mod4$res), col=4, lwd=2)
-shapiro.test(mod4$res)
+histmod4<-hist(mod3$res, probability=TRUE)
+lines(density(mod3$res), col=4, lwd=2)
+shapiro.test(mod3$res)
 ```
+
 P-Value yra daugiau už 0,05 todėl neatmetame nulinės testo hipotezės, kad tikrinami duomenys yra normaliai pasiskirstę. Taigi, liekanos yra normaliai pasiskirsčiusios.
 
-Taip pat yra svarbu patikrinti, ar modelis nėra homoskedastiškas.
-```{r}
-plot(mod4$res~mod4$fitted)
-library(lmtest)
-bptest(mod4)
-```
-Kadangi Breusch-Pagan testo p-value yra mažesnis už 0,05, galime atmesti nulinę hipotėzę teigiančią, jog modelis yra heteroskedastiškas.
+Taip pat yra svarbu patikrinti, ar modelis nėra heteroskedastiškas.
 
-Taigi, modelis "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)" yra patikimas pagal visus pagrindinius rodiklius, todėl galime jį naudoti nagrinėjant butų kainas.
+```{r}
+plot(mod3$res~mod3$fitted)
+library(car)
+ncvTest(mod3)
+```
+
+Kadangi "Non-Constant Error Variance" testo p-value yra didesnis už 0,05, negalime atmesti nulinės hipotezės, teigiančios, jog modelis yra homoskedastiškas. Taigi, modelis heteroskedastiškumo problemų neturi.
+
+```{r}
+durbinWatsonTest(mod3)
+```
+
+Durbin-Watson testo p-value yra daugiau už 0,05, todėl negalime atmesti hipotezės, kad liekanos nėra autokoreliuotos.
+
+Taigi, trečiasis modelis "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)" yra patikimas pagal visus pagrindinius rodiklius.
+Todėl galime jį naudoti prognozuojant butų kainas.

@@ -1,0 +1,57 @@
+---
+title: "Task3"
+author: "Tomas Kozlovskis"
+date: "Tuesday, March 15, 2016"
+output: html_document
+---
+Futbolas. (Iššūkis) Modeliuokime fotbolo varžybų metu įmašumų įvarčių kiekį. Laiko intervalai tarp įvarčių modeliuojami su eksponentiniu skirstiniu (eksponentinio skirstinio parametrą pasiūlykite patys). Kaip tuomet atrodo įvarčių pasiskirstymas varžybų tėkmėje? Taip pat pažiūrėkite kokį skirstinį turi varžymų bagties skirstinys. Ar tai primena Poisono skirstinį? Ar galite atlikti formalų testą?
+
+Pradėkime nuo įvarčių, įmuštų per rungtynes skaičiaus generavimo.
+
+```{r}
+goalspg <- function() #Ivarciu per vienas rungtynes
+{
+  x<-0
+  y<-rexp(100, 0.034)
+  i<-1
+  while(x<90)
+  {
+    if(x + y[i] <= 90)
+      x <- x + y[i]
+    else
+    {
+      y = y[-i]
+      x = 90
+      i = i - 2
+    }
+    i = i + 1
+  }
+  return(i)
+}
+
+```
+
+Kuomet turime funkciją, kuri generuoja, kiek įvarčių buvo imušta per vieneres rungtynes, galime sugeneruoti daug stebejimų, ir pasižiūrėti kaip atrodo įvarčių pasiskirstymas per 1000 rungtynių. 
+
+```{r}
+goalsp1000<-replicate(1000, goalspg())
+```
+
+Šiuo atveju išspausdinsime pirmus 100 stebėjimų:
+
+```{r, echo=FALSE}
+head(goalsp1000,100)
+```
+
+Įvarčių sklaidos diagrama ir histograma atrodo taip:
+```{r, echo=FALSE}
+plot(goalsp1000)
+hist(goalsp1000, probability=TRUE)
+```
+
+Histograma rodo, jog įvarčių pasiskirstymas tikrai nėra normalus. Taigi, reikia patikrinti, ar įvarčių pasiskirstymas yra panašus į Poissono skirstinį.
+
+```{r}
+poiss<-rpois(1000, 0.034)
+chisq.test(goalsp1000, p=poiss/sum(poiss))
+```
