@@ -1,0 +1,86 @@
+---
+title: "Task1"
+author: "Tomas Kozlovskis"
+date: "Sunday, February 21, 2016"
+output: html_document
+---
+I have found an interestingly looking graph, that shows the spatial distribution of galaxies in the clustrel called Abell 85. Data is used from the NASA Extragalactic database.
+
+Unfortunately, I am not able to transform this script into the form which would give actual graph, because in the end, this script returns pdf file and when knitted, it does not return anything. So I thought everyone could help me figure out how to make it draw a plot directly to R.
+
+
+```{r}
+#--Read in data file:
+url <- "http://www.sr.bham.ac.uk/~ajrs"
+file <- "R/datasets/a85_extended_NEDsearch.txt"
+A <- read.table(paste(url, file, sep="/"), sep="|", skip=20, header=TRUE)
+close(url(paste(url, file, sep="/"))) # close connection after use 
+
+#--Specfify output graphics device:
+pdf(file="galaxy_density_contours.pdf", width=8, height=6.5)
+
+#--Rename columns of interest:
+colnames(A)[c(2, 3, 4, 5)] <- c("name", "ra", "dec", "type") 
+
+#--Select only galaxies near the core of the cluster:
+G <- subset(A, type=="G" & ra > 10 & ra < 11 & dec > -10 & dec < -8.7) 
+
+#--Exclude outlier galaxies in front of and behind the main cluster:
+G <- subset(G, !is.na(Redshift) & Redshift < 0.063 & Redshift > 0.048)
+
+#--Functions to create colour linearly varying between 
+#   blue & red, according to the redshift:
+remap <- function(x) ( x - min(x) ) / max( x - min(x) ) # map x onto [0, 1]
+fun.col <- function(x) rgb(colorRamp(c("blue", "red"))(remap(x)), maxColorValue = 255)
+
+#--Define colour according to redshift:
+G$col <- with(G, fun.col(Redshift) )
+
+#--Plot galaxy positions:
+par(mar=c(4, 4, 1, 15))  # add wide right margin to make room for subplot
+
+## The plot setting "asp=1" gives an aspect ratio of one, so that 1 degree in 
+##  RA is the same width on the plot as 1 degree in Dec. This only applies on 
+##  the celestial equator (dec=0), so we need a slightly larger value
+##  equal to 1 / cos(dec), where "dec" is simply the mean declination 
+##  of the galaxies in the field:
+asp <- 1 / cos( (mean(A$dec) / 180) * pi )  # ~1.013
+
+## Also need to reverse the RA axis (thanks to Ignazio Pillitteri for
+## pointing out that I had forgotten to do this), since we are viewing
+## the celestial sphere from the inside, so East is left and West is right.
+plot(dec ~ ra, data=G, col=col, xlab="Right Ascension", ylab="Declination",
+     frame.plot=FALSE, xlim=rev(range(ra)), ylim=c(-10, -8.5), asp=asp,
+     main="Abell 85 galaxy cluster") 
+
+#-----Overlay contours of surface density:
+mycol <- rgb(0, 0, 0, alpha=0.5)	# 50% transparent black
+require(KernSmooth)	# Load library required for 2d density estimate
+#--Calculate 2-dimensional kernel-smoothed estimate:
+est <- bkde2D(G[c("ra", "dec")], bandwidth=c(0.05, 0.05), gridsize=c(101, 101))
+#--Display as a contour map:
+with(est, contour(x1, x2, fhat, drawlabels=FALSE, add=TRUE, col=mycol))
+
+#--Modify graphics parameter settings to create an inset plot:
+op <- par(fig=c(0.6, 1, 0.55, 0.9), new=TRUE, cex=0.8, mar=c(4, 4, 0, 0))
+
+z <- G$Redshift
+den <- density(z)	# kernel-smoothed density
+#--Create spline function of density data to allow evaluation of probability
+#   density at each galaxy redshift:
+sf <- splinefun(den$x, den$y)
+#--Plot density distribution, coloured by redshift
+plot(z, sf(z), col=fun.col(z), xlab="Redshift", ylab="Probability density", 
+     frame.plot=FALSE)
+
+#--Add "L"-shaped partial frame around plot:
+box(bty="L")
+
+#--Add dashed line for Gaussian distribution with specified mean & sd:
+curve(dnorm(x, mean=mean(z), sd=sd(z)), lty=2, add=TRUE)
+
+#--Close plotting device:
+dev.off()
+```
+
+The script is taken from http://www.sr.bham.ac.uk/~ajrs/R/r-gallery.html.

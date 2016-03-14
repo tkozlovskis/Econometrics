@@ -1,0 +1,114 @@
+---
+title: "Task4"
+author: "Tomas Kozlovskis"
+date: "Friday, March 11, 2016"
+output: html_document
+---
+Mūsų užduotis buvo atlikti išsamią tiesinę regresiją. Lygtis reikalinga prekyboms agentams, kad geriau suprastų kokią įtaką skirtingos charakteristikos daro galutinei kainai.
+
+Visų pirma, turime įsivesti duomenis į savo darbo aplinką ir juos apžvelgti.
+```{r}
+duom=read.csv2(file="C:/Users/TOMAS/Desktop/R/Destytojo/task4/data.csv")
+head(duom)
+```
+
+Pasižiūrėję į duomenis, matome jog du rodikliai - garso izoliacija ir šilumos laidumas - gali būti koreliuoti, nes vienas nulemia kitą, t.y. kuo geriau apšiltintos sienos, tuo mažesnis šilumos laidumas, bet kartu ir garso izoliacija geresne.
+
+```{r}
+cor(duom$garsoIzoliacija, duom$silumosLaidumas)
+```
+
+Suskaičiavę koreliacijos koeficientą, galime teigti, kad koreliacija egzistuoja, jos koeficientas yra lygus 0.95 ir yra gana didelis, todėl šilumos laidumas stipriai koreliuoja su garso izoliacija.
+
+Dėl to, jog kintamieji yra koreliuoti, tų kintamųjų įverčiai gali būti paslinkti, todėl geriausia būtų šiuos du kintamuosius pakeisti į vieną, kuris yra garso izoliacijos ir šilumos laidumo vidurkis.
+Deja, šiuo atveju taip daryti negalime, dėl to, kad nežinome ar garso izoliacija ir šilumos laidumas yra pamatuoti vienodais kintamaisiais ir vienoje skalėje. Taigi, tam, kad išspręsti šią problemą, turime pašalinti vieno iš kintamųjų duomenis. Šiuo atveju, renkamės ištrinti garso izoliacijos duomenis, nes šilumos laidumas daro daugiau įtakos būsto kainai, negu garso izoliacija (senesnių namų kaina mažesnė, bet jų šilumos laidumas blogesnis, o garso izoliacija visų namų yra panaši).
+
+```{r}
+duom$garsoIzoliacija<-NULL
+```
+
+
+
+boxplot(duom$kaina)
+boxplot(duom$atstumasIkiPrekybosCentro)
+boxplot(duom$silumosLaidumas)
+boxplot(duom$plotas)
+
+Visi duomenys turi išskirtis - reikšmes, kurios nuo didžiosios dalies reikšmių yra stipriai nutolusios. Tam, kad šios reikšmės stipriai neiškreiptų modelio, jas reikia surasti ir pašalinti. Tam naudosime "influence.measures" funkciją.
+
+```{r}
+kainaplotas<-lm(duom$kaina~duom$plotas)
+
+kainaplotasaukstas<-lm(duom$kaina~duom$plotas+duom$aukstas)
+
+kainaatstumas<-lm(duom$kaina~duom$atstumasIkiPrekybosCentro)
+
+kainalaidumas<-lm(duom$kaina~duom$silumosLaidumas)
+
+summary(influence.measures(kainaplotas))
+
+summary(influence.measures(kainaplotasaukstas))
+
+summary(influence.measures(kainaatstumas))
+
+summary(influence.measures(kainalaidumas))
+```
+
+Patikrinus kelių modelių, kuriuose kaina yra aiškinama per skirtingus kintamuosius (plotą, aukštą, atstumą iki parduotvės bei šilumos laidumą), "cook's distance", kuris informuoja apie išskirtis duomenyse, gautą iš funkcijos "influence.measures", galime daryti išvadą, jog dvi eilutes (253,254) duomenų turime pašalinti.
+
+```{r}
+ids<-c(253,254)
+
+duom<-duom[-ids,]
+```
+
+
+Sukuriame kelis modelius. Atstumas iki prekybos centro yra pašalinamas visuose modeliuose, nes jis yra nereikšmingas.
+
+```{r}
+mod2<-lm(duom$kaina~duom$plotas+duom$aukstas+duom$silumosLaidumas)
+summary(mod2)
+
+mod3<-lm(log(duom$kaina)~log(duom$plotas)+log(duom$aukstas)+log(duom$silumosLaidumas))
+summary(mod3)
+
+
+mod4<-lm(duom$kaina~I(duom$plotas)+I(duom$aukstas)+I(duom$aukstas^2)+I(duom$silumosLaidumas))
+summary(mod4)
+```
+
+Geriausią modelį išsirenkame pagal "R-Squared" ir "Akaike's Information Criteria" koeficientus.
+```{r}
+summary(mod2)$r.squared
+summary(mod3)$r.squared
+summary(mod4)$r.squared
+
+AIC(mod2)
+AIC(mod4)
+```
+
+par(mfrow=c(2,2))
+plotai<-plot(duom$kaina~duom$plotas+duom$aukstas+duom$silumosLaidumas)
+
+
+Patikrinę šiuos parametrus, renkamės ketvirtą modelį "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)", nes jo R-Squared didžiausias iš visų, o AIC mažiausias.
+
+Toliau tikrinsime kitus modelio patikimumo parametrus.
+
+Visų pirma tikriname modelio liekanų pasiskirstymo normalumą.
+```{r}
+histmod4<-hist(mod4$res, probability=TRUE)
+lines(density(mod4$res), col=4, lwd=2)
+shapiro.test(mod4$res)
+```
+P-Value yra daugiau už 0,05 todėl neatmetame nulinės testo hipotezės, kad tikrinami duomenys yra normaliai pasiskirstę. Taigi, liekanos yra normaliai pasiskirsčiusios.
+
+Taip pat yra svarbu patikrinti, ar modelis nėra homoskedastiškas.
+```{r}
+plot(mod4$res~mod4$fitted)
+library(lmtest)
+bptest(mod4)
+```
+Kadangi Breusch-Pagan testo p-value yra mažesnis už 0,05, galime atmesti nulinę hipotėzę teigiančią, jog modelis yra heteroskedastiškas.
+
+Taigi, modelis "lm(formula = duom$kaina ~ I(duom$plotas) + I(duom$aukstas) + I(duom$aukstas^2) + I(duom$silumosLaidumas)" yra patikimas pagal visus pagrindinius rodiklius, todėl galime jį naudoti nagrinėjant butų kainas.
