@@ -1,0 +1,56 @@
+---
+title: "Task5"
+author: "Tomas Kozlovskis"
+date: "Tuesday, March 15, 2016"
+output: html_document
+---
+Šioje užduotyje reikia atlikti tiesinę regresiją. Pakete dynlm yra duomenų masyvas M1Germany - ten yra ir jo aprašymas. Iš turimų duomenų sudarykite ir įvertinkite tiesinę regresiją, kurios endogeninis kintamasis yra logm1. Lygtis būtų naudojama prognozuoti pinigų kiekį artimiausiam laikotarpiui į prieki remiantis dabartine situacija. Taigi prognozės sudarymui lygtis gali naudoti tik tuos duomenis, kurie būtų žinomi prognozavimo momentu.
+
+
+Taigi, pradžioje įsivedame duomenis ir juos apžvelgiame.
+```{r}
+library(dynlm)
+library(car)
+library(lmtest)
+
+duom<-M1Germany
+del<-c(145,146,147)
+duom<-duom[-del,]
+head(duom)
+```
+
+Matome, jog matavimo intervalas yra ketvirtis (3 mėnesiai). Kuriame kelis modelius, bet atrenkame patį geriausią, pagal jo Akaike information criteria ir R-Squared koeficientus.
+
+```{r}
+mod<-dynlm(logm1~L(logprice,4)+d(L(loggnp,4))+L(interest,4), duom)
+summary(mod)
+summary(mod)$r.squared
+AIC(mod)
+```
+
+Modelio r.squared ir AIC parametrai lėmė tai, jog jis buvo išrinktas kaip geriausias modelis, todėl tęsiame jo patikimumo tikrinimą. 
+
+```{r}
+vif(mod)
+```
+
+Panaudoję vif funkciją, nepastebėjome multikolinearumo problemų.
+
+Beliko patikrinti modelio liekanų normalumą ir įverčių paklaidų homoskedastiškumą.
+
+```{r}
+hist(mod$res, probability = T)
+curve(dnorm(x, mean=mean(mod$res), sd=sd(mod$res)), col=3, lwd=6, add=TRUE)
+shapiro.test(as.vector(mod$res))
+```
+
+P-value daugiau už 0.05, todėl neturime pagrindo atmesti H0 hipotezės, teigiančios, jog paklaidos yra normaliai pasiskirsčiusios.
+
+```{r}
+plot(mod$res~mod$fitted)
+bptest(mod)
+```
+
+P-value yra daugiau už 0.05, todėl neturime pagrindo atmesti H0 hipotezės, teigiančios, jog modelis yra homoskedastiškas
+
+Šios savybės leidžia manyti, jog modeliu galima pasitikėti ir jis gali būti naudingas prognozuojant.
