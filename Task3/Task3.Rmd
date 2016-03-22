@@ -44,14 +44,27 @@ head(goalsp1000,100)
 ```
 
 Įvarčių sklaidos diagrama ir histograma atrodo taip:
-```{r, echo=FALSE}
+```{r}
 plot(goalsp1000)
 hist(goalsp1000, probability=TRUE)
 ```
 
 Histograma rodo, jog įvarčių pasiskirstymas tikrai nėra normalus. Taigi, reikia patikrinti, ar įvarčių pasiskirstymas yra panašus į Poissono skirstinį.
 
+Viena iš Poissono skirstinio savybių yra tai, jog jo vidurkis ir dispersija yra lygūs.
+
 ```{r}
-poiss<-rpois(1000, 0.034)
-chisq.test(goalsp1000, p=poiss/sum(poiss))
+mean(goalsp1000)
+var(goalsp1000)
 ```
+
+Vidurkis yra beveik lygus dispersijai, bet visgi bet kokiu atveju, ši savybė nėra pakankama tam, kad galėtume įrodyti, jog įvarčiai yra pasiskirstę pagal Poissono skirstinį.
+
+Todėl naudoju Kolmogorovo-Smirnovo testą, kuris tikrina ar dvi imtys yra pasiskirsčiusios pagal tą patį skirstinį. Sugeneruoju imtį pagal Poissono pasiskirstymą ir lyginu ją su įvarčių pasiskirstymo imtimi.
+
+```{r}
+ps<-rpois(1000, 3)
+ks.test(goalsp1000, ps)
+```
+
+Testo p-value yra daugiau už 0,05, todėl negalime atmesti nulinės hipotezės teigiančios, jog imtys yra iš to pačio skirstinio. Taigi, galime teigti, jog įvarčių pasiskirstymas yra paimtas iš Poissono pasiskirstymo. 
