@@ -1,0 +1,186 @@
+---
+title: "Task7"
+author: "Tomas Kozlovskis"
+date: '2016 m balandis 5 d '
+output: html_document
+---
+```{r, include=FALSE}
+library(fpp)
+```
+####1. The function tsdisplay(data, plot.type="scatter") is useful
+####for showing a time plot, ACF plot and lagged scatterplot on the
+####same graph. Use it to produce plots of the following time series:
+####bricksq, hsales, ibmclose
+####Can you spot the effects of seasonality, cyclicity and trend?
+
+
+
+```{r, echo=F}
+brick<-tsdisplay(bricksq, plot.type="scatter")
+```
+
+This data set seems to have seasonality. 
+
+```{r, echo=F}
+sales<-tsdisplay(hsales, plot.type="scatter")
+```
+
+This data set has a seasonality as well.
+
+```{r, echo=F}
+ibm<-tsdisplay(ibmclose, plot.type="scatter")
+```
+
+This data set seems to have a trend. Furthermore, variables are highly correlated.
+
+
+###3. For the data set bricksq:
+
+####(a) Split the data into two parts.
+```{r}
+bricks1 <- window(bricksq, end=1987.99)
+bricks2 <- window(bricksq, start=1988)
+```
+
+####(b) Check that your data have been split appropriately by producing
+####the following plot
+```{r, echo=F}
+plot(bricksq)
+lines(bricks1,col="red")
+lines(bricks2,col="blue")
+```
+
+####(c) Calculate forecasts using each of the four benchmark methods
+####applied to bricks1.
+```{r}
+fnaiv<-naive(bricks1, h=7)
+fsnaiv<-snaive(bricks1, h=7)
+fdrift<-rwf(bricks1, drift=T, h=7)
+fmean<-meanf(bricks1, h=7)
+```
+
+####(d) Compare the accuracy of your forecasts against the actual values
+####stored in bricks2.
+```{r, echo=F}
+accnaiv<-accuracy(fnaiv, bricks2)
+accsnaiv<-accuracy(fsnaiv, bricks2)
+accdrift<-accuracy(fdrift, bricks2)
+accmean<-accuracy(fmean, bricks2)
+```
+```{r}
+accnaiv
+accsnaiv
+accdrift
+accmean
+```
+
+####(e) Which method does best? Why?
+```{r, echo=F}
+par(mfrow=c(2,2))
+plot(fnaiv)
+lines(bricks2, col=2)
+plot(fsnaiv)
+lines(bricks2, col=2)
+plot(fdrift)
+lines(bricks2, col=2)
+plot(fmean)
+lines(bricks2, col=2)
+```
+
+We are choosing seasonal naive method $fsnaiv$, because its ME, RMSE, MAE, MPE, MASE criterias were lower than same criterias of the other methods, that means that his errors were less harmful to the forecast.
+
+####(f) For the best method, compute the residuals and plot them.
+####Do the residuals appear to be uncorrelated and normally distributed?
+```{r, echo=F}
+res <- residuals(fsnaiv)
+plot(res)
+```
+```{r}
+hist(res, breaks="FD")
+Acf(res)
+shapiro.test(res)
+```
+
+Unfortunately, residuals are not distributed normaly (they did not pass Shapiro-Wilk test for normality) and they are correlated.
+
+
+###5. Consider the sales of new one-family houses in the USA (Jan 1987 –
+###Nov 1995). Data set: hsales.
+####(a) Produce some plots of the data in order to become familiar
+####with it.
+
+```{r, echo=F}
+tsdisplay((hsales))
+fit <- stl(hsales, t.window=15, s.window="periodic", robust=TRUE)
+plot(fit)
+```
+
+Looks like the data is seasonal and has no clear trend.
+
+####(b) Split the data into a training set and a test set, where the test
+####set is the last two years of data.
+```{r}
+sales1 <- window(hsales, end=1993.99)
+sales2 <- window(hsales, start=1994)
+plot(hsales)
+lines(sales1,col="red")
+lines(sales2,col="blue")
+```
+
+####(c) Try various benchmark methods to forecast the training set and
+####compare the results on the test set. Which method did best?
+
+```{r}
+f.naiv<-naive(sales1, h=10)
+f.snaiv<-snaive(sales1, h=10)
+f.drift<-rwf(sales1, drift=T, h=10)
+f.mean<-meanf(sales1, h=10)
+```
+
+```{r, echo=F}
+acc.naiv<-accuracy(f.naiv, sales2)
+acc.snaiv<-accuracy(f.snaiv, sales2)
+acc.drift<-accuracy(f.drift, sales2)
+acc.mean<-accuracy(f.mean, sales2)
+```
+```{r}
+acc.naiv
+acc.snaiv
+acc.drift
+acc.mean
+```
+```{r, echo=F}
+par(mfrow=c(2,2))
+plot(f.naiv)
+lines(sales2, col=2)
+plot(f.snaiv)
+lines(sales2, col=2)
+plot(f.drift)
+lines(sales2, col=2)
+plot(f.mean)
+lines(sales2, col=2)
+```
+
+After taking a look at the graph, it seems that seasonal naive method would be best for forecasting. Test for accuracy proves it, because seasonal naive method's accuracy criterias are the lowest of all of the tested methods.
+
+####(d) For the best method, compute the residuals and plot them.
+####What do the plots tell you?
+
+```{r, echo=F}
+resid <- residuals(f.snaiv)
+plot(resid)
+```
+```{r}
+hist(resid, breaks="FD")
+Acf(resid)
+shapiro.test(resid)
+```
+
+It appears that residuals are little correlated and are normally distributed (they passed Shapiro-Wilk test for normality).
+
+####(e) Can you invent a better forecasting method than any of the
+####benchmark methods for these data?
+
+I tend think, that seasonal naive method forecasts well enough to trust him in order to make future decisions. However, it is only the case to this exact data.
+
+I am well aware, that "data" can be treated as a plural noun, but according to $http://www.language-boutique.com/lost-in-translation-full-reader/these-data-are-or-this-data-is-.html$, data can be treated as both: singular and plural noun, so there is no mistake in writing "this data" or "these data".
