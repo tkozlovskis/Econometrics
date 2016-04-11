@@ -1,0 +1,72 @@
+---
+title: "Task6"
+author: "Tomas Kozlovskis"
+date: '2016 m kovas 29 d '
+output: html_document
+---
+##Task: Use the Dow Jones index (data set dowjones) to do the following:
+####(a) Produce a time plot of the series.
+####(b) Produce forecasts using the drift method and plot them.
+####(c) Show that the graphed forecasts are identical to extending the
+####line drawn between the first and last observations.
+####(d) Try some of the other benchmark functions to forecast the same
+####data set. Which do you think is best? Why?
+```{r, include=F}
+library(fpp)
+```
+###a.
+Firstly, we have to take a look at the data.
+```{r}
+head(dowjones)
+```
+
+We have data of daily Dow-Jones index, from August 28 to December 18, 1972.
+
+```{r}
+plot(dowjones, main="Dow-Jones Index")
+```
+
+After plotting time series, we can agree that this particular data does have a trend, but does not have seasonality.
+
+###b.
+Plotting a forecast of the data using Random Walk with Drift method.
+```{r, echo=F}
+drift<-rwf(dowjones, drift=TRUE, h=20)
+plot(drift, lwd=2)
+```
+
+###c.
+To complete the (c) part of the task, we have to draw a line from the first observation to the latest, and extend the line to see whether the line we drew is the same as the line that is drawn by Randow Walk with Drift method.
+```{r}
+x1<-1
+x2<-78
+y1<-dowjones[1] #1st observation 
+y2<-dowjones[78] #78th observation
+b=(y1-y2)/(x1-x2)
+a=(y1*x2-y2*x1)/(x2-x1)
+plot(drift)
+abline(a,b, col=3)
+```
+
+The graph assures that these lines match.
+
+###d.
+While selecting the best method to forecast, we are comparing real data to the forecasted.
+```{r, echo=F}
+cd<-c(seq(from = 60, to = 78))
+dow1<-dowjones[cd]
+dowjones1<-dowjones[-cd]
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(dowjones, main="Original data")
+first<-naive(dowjones1, h=20)
+plot(first)
+second<-rwf(dowjones1, drift=TRUE, h=20)
+plot(second)
+third<-meanf(dowjones1, h=20)
+plot(third)
+```
+
+####It is clear, that compared to drift method and mean method, naive method works the best.
