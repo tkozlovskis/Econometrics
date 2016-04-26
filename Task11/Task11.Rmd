@@ -1,0 +1,31 @@
+---
+title: "Task11"
+author: "Tomas Kozlovskis"
+date: '2016 m balandis 24 d '
+output: html_document
+---
+
+##TASK 11
+
+###Use ets() to find the best ETS model for the price of eggs (data set eggs). How does this model compare to the one you found in the previous lab session?
+
+```{r, include=F}
+library(fpp)
+```
+
+```{r}
+ets(eggs)
+```
+
+Function ETS finds that the best model is (M,N,N).
+
+```{r}
+fit<-ets(eggs, model="MNN")
+```
+
+```{r,echo=F}
+plot(fit)
+accuracy(fit)
+```
+
+Model, that was found with ETS gives RMSE of 26.58151, while model that we have found in previous session gives RMSE of 26.39004. So, model that was found in previous session is better.

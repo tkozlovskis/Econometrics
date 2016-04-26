@@ -96,6 +96,7 @@ Visų pirma tikriname modelio liekanų pasiskirstymo normalumą.
 ```{r}
 histmod4<-hist(mod3$res, probability=TRUE)
 lines(density(mod3$res), col=4, lwd=2)
+curve(dnorm(x, mean=mean(x), sd=sd(x)), lwd=2, col=3, add=T)
 shapiro.test(mod3$res)
 ```
 

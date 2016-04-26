@@ -1,0 +1,179 @@
+---
+title: "Task10"
+author: "Tomas Kozlovskis"
+date: '2016 m balandis 18 d '
+output: html_document
+---
+##TASK 10.1
+
+For this exercise, use the price of a dozen eggs in the United States
+from 1900–1993 (data set eggs). Experiment with the various options
+in the holt() function to see how much the forecasts change
+with damped or exponential trend. Also try changing the parameter
+values for alfa and beta to see how they affect the forecasts. Try to
+develop an intuition of what each parameter and argument is doing
+to the forecasts.
+Which model gives the best RMSE?
+Do the residuals from the best model look like white noise?
+
+```{r, include=F}
+library(fpp)
+```
+
+Firstly, let's take a look at our original data, which contains observations of prices of dozen of eggs in USA from 1900 until 1993.
+
+```{r, echo=FALSE}
+plot(eggs)
+```
+
+```{r}
+fit2 <- holt(eggs, h=100)
+```
+```{r, echo=FALSE}
+plot(fit2) 
+accuracy(fit2)
+```
+```{r}
+fit4 <- holt(eggs, h=100, damped=F, exponential = T)
+```
+```{r, echo=FALSE}
+plot(fit4)
+accuracy(fit4)
+```
+
+```{r}
+fit5.1<-holt(eggs, h=100, damped = TRUE)
+```
+```{r, echo=FALSE}
+plot(fit5.1)
+accuracy(fit5.1)
+```
+
+Because of the fact, that our data has a trend, this forecast is a constant.
+
+``` {r}
+fit6 <- holt(eggs, h=100, damped=FALSE, beta=0.0009)
+```
+```{r, echo=FALSE}
+plot(fit6)
+accuracy(fit6)
+```
+``` {r}
+fit7 <- holt(eggs, h=100, damped =T, exponential = T, beta = 0.001)
+```
+```{r, echo=FALSE}
+plot(fit7)
+accuracy(fit7)
+```
+``` {r}
+fit8 <- holt(eggs, h=100, damped = T, exponential = T, beta = 0.2)
+```
+```{r, echo=FALSE}
+plot(fit8)
+accuracy(fit8)
+```
+``` {r}
+fit9 <- holt(eggs, h=100, damped =T, exponential = T, alpha = 0.05)
+```
+``` {r, echo=F}
+plot(fit9)
+accuracy(fit9)
+```
+
+Forecast is the best when model estimates alpha that fits data best
+``` {r}
+fit10<-holt(eggs, h=100, damped = T, exponential = T)
+```
+``` {r,echo=F}
+plot(fit10)
+accuracy(fit10)
+```
+``` {r,echo=F}
+fit10$model
+```
+
+Model $fit4$ which is Holt's exponential forecast gives the best RMSE. Let's take a look at it's residuals.
+
+```{r, echo=F}
+fit4_res<-fit4$residuals
+plot(fit4_res)
+hist(fit4_res)
+acf(fit4_res)
+```
+```{r}
+mean(fit4_res)
+```
+
+Residuals do look like white noise, because according to ACF graph, they are not autocorrelated. Furthermore, their mean is close to zero and according to histogram, they seem to be normally distributed.
+
+##TASK 10.2
+
+###For this exercise, use the monthly Australian short-term overseas visitors data, May 1985–April 2005. (Data set: visitors.)
+
+####(a) Make a time plot of your data and describe the main features of the series.
+
+```{r, echo=FALSE}
+
+head(visitors)
+
+plot(visitors)
+
+tsdisplay(visitors)
+
+```
+
+Data set of ours has a trend, and seems to be seasonal, according ACF graph.
+
+####(b) Forecast the next two years using Holt-Winters’ multiplicative method.
+
+```{r, echo=F}
+
+fit_hw<-hw(visitors, h=24, seasonal="mult")
+plot(fit_hw)
+```
+
+####(c) Why is multiplicative seasonality necessary here?
+
+The multiplicative seasonality is necessary here because of the fact, that seasonal variation in the data is increasing. Additive method does not cover increasing seasonal variation.
+
+####(d) Experiment with making the trend exponential and/or damped.
+
+```{r, echo=F}
+fit_hwe<-hw(visitors, h=24, seasonal="mult", exponential=T)
+plot(fit_hwe)
+fit_hwd<-hw(visitors, h=24, seasonal="mult", damped=T)
+plot(fit_hwd)
+```
+
+####(e) Compare the RMSE of the one-step forecasts from the various methods. Which do you prefer?
+
+Holt-Winters
+```{r, echo=F}
+accuracy(fit_hw)
+```
+
+Holt-Winters exponential
+```{r, echo=F}
+accuracy(fit_hwe)
+```
+
+Holt-Winters damped
+```{r, echo=F}
+accuracy(fit_hwd)
+```
+
+The RMSE of damped model is lowest, so I would prefer $fit_hwd$ model.
+
+####(f) Check that the residuals from the best model look like white noise.
+
+```{r, echo=F}
+fit_res<-fit_hwd$residuals
+plot(fit_res, main="Residuals from damped Holt-Winters model")
+mean(fit_res)
+hist(fit_res, main="Histogram of residuals")
+shapiro.test(as.vector(fit_res))
+acf(fit_res, main="ACF of residuals")
+Box.test(fit_res,lag=24, fitdf=0, type="Lj")
+```
+
+Residuals do look like white noise. Their variances are simillar in different periods of time. They are normally distributed and their mean is close to zero. Residuals have also passed Box-Ljung test for independence.

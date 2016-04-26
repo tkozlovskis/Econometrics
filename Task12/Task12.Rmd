@@ -1,0 +1,75 @@
+---
+title: "Task12"
+author: "Tomas Kozlovskis"
+date: '2016 m balandis 26 d '
+output: html_document
+---
+##TASK 12
+
+###For this exercise, use the monthly Australian short-term overseas visitorsdata, May 1985–April 2005.
+
+####(a) Use ets to find the best model for these data and record the training set RMSE.
+
+```{r, include=FALSE}
+library(fpp)
+```
+```{r}
+fit_ets<-ets(visitors)
+accuracy(fit_ets)
+```
+
+RMSE(A)=15.847
+
+####(b) We will now check how much larger the one-step RMSE is on out-of-sample data using time series cross-validation. The following code will compute the result, beginning with four years of data in the training set.
+```{r, echo=F}
+k <- 48 # minimum size for training set
+n <- length(visitors) # Total number of observations
+e <- visitors*NA # Vector to record one-step forecast errors
+for(i in 48:(n-1))
+{
+train <- ts(visitors[1:i],freq=12)
+fit <- ets(train, "MAM", damped=FALSE)
+fc <- forecast(fit,h=1)$mean
+e[i] <- visitors[i+1]-fc
+}
+sqrt(mean(e^2,na.rm=TRUE))
+```
+
+RMSE(B)=18.08962
+
+####(c) What would happen in the above loop if I had set train <- visitors[1:i]?
+
+Without function $ts$ our data will not be treated as seasonal data, so, the $ets$ function could not be applied.
+
+####(d) Plot e. What do you notice about the error variances? Why does this occur?
+
+```{r, echo=F}
+head(e)
+plot(e, main="Residuals")
+```
+
+There is no errors for first 47 months, because cycle in function used in part (b) is starting at 48, so first 47 months are not calculated into model. Residuals also seem to be heteroscedastic.
+
+####(e) How does this problem bias the comparison of the RMSE values from (1a) and (1b)?
+
+As we can see in the graph of residuals, the variance of residuals tend to get bigger as the time goes, for exapmle in the 1990 variance of residuals was smaller than in 2000. This means, that when we eliminate residuals from first 47 months, we should expect that mean of residuals will be bigger when first 47 elements are eliminated, because their variance is bigger. Accordingly, when we add the first 47 elements, which have smaller variance, their mean is expected to be smaller than without these first 47 elements. The fact, that RMSE(A)=15.847 is smaller than RMSE(B)=18.08962 proves the statement above.
+
+####(f) In practice, we will not know that the best model on the whole data set is ETS(M,A,M) until we observe all the data. So a more realistic analysis would be to allow ets to select a different model each time through the loop. Calculate the RMSE using this approach. (Warning: it will take a while as there are a lot of models to fit.)
+
+```{r, echo=F}
+k <- 48 # minimum size for training set
+n <- length(visitors) # Total number of observations
+e <- visitors*NA # Vector to record one-step forecast errors
+for(i in 48:(n-1))
+{
+train <- ts(visitors[1:i],freq=12)
+fit <- ets(train)
+fc <- forecast(fit,h=1)$mean
+e[i] <- visitors[i+1]-fc
+}
+sqrt(mean(e^2,na.rm=TRUE))
+```
+
+####(g) How does the RMSE computed in (1f) compare to that computed in (1b)? Does the re-selection of a model at each step make much difference?
+
+Actually, it does not make much difference, because RMSE(B)=18.08962, while RMSE(F)=18.47088. According to RMSE, function in (1b) gives better residuals.

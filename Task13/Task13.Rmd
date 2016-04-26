@@ -1,0 +1,195 @@
+---
+title: "Task13"
+author: "Tomas Kozlovskis"
+date: '2016 m balandis 26 d '
+output: html_document
+---
+```{r, include=F}
+library(fpp)
+```
+
+##TASK 13.1
+###For the following series, find an appropriate Box-Cox transformation and order of differencing in order to obtain stationary data.
+
+####(a) usnetelec
+```{r, echo=F}
+plot(usnetelec)
+acf(usnetelec)
+```
+
+Data seems to have a trend.
+
+```{r}
+nd<-ndiffs(usnetelec)
+usnetelec_d<-diff(usnetelec, differences = nd)
+```
+```{r, echo=F}
+plot(usnetelec_d, main="Transformed data")
+acf(usnetelec_d)
+kpss.test(usnetelec_d)
+
+```
+
+Number of differences is 1. After differencing, we are using $kpss.test$ to determine if now data is stationary. Test gives a p-value higher than 0.05, which means that we cannot deny null hypothesis that time series is stationary.
+
+
+####(b) usgdp
+```{r, echo=FALSE}
+plot(usgdp)
+acf(usgdp)
+```
+
+Data seems to have a trend.
+
+```{r}
+nd1<-ndiffs(usgdp)
+usgdp_d<-diff(usgdp, differences = nd1)
+```
+```{r, echo=F}
+plot(usgdp_d)
+acf(usgdp_d)
+plot(stl(usgdp_d, s.window = "periodic"))
+kpss.test(usgdp_d)
+```
+
+We are using $kpss.test$ to determine if now data is stationary. Test gives a p-value higher than 0.05, which means that we cannot deny null hypothesis that time series is stationary.
+
+####(c) mcopper
+
+```{r, echo=F}
+plot(mcopper)
+acf(mcopper)
+```
+
+Data seems to have a trend.
+
+```{r}
+nd2<-ndiffs(mcopper)
+mcopper_d<-diff(mcopper, differences = nd2)
+```
+```{r, echo=F}
+plot(mcopper_d)
+acf(mcopper_d)
+kpss.test(mcopper_d)
+```
+
+We are using $kpss.test$ to determine if now data is stationary. Test gives a p-value higher than 0.05, which means that we cannot deny null hypothesis that time series is stationary.
+
+####(d) enplanements
+
+```{r, echo=F}
+plot(enplanements)
+acf(enplanements)
+plot(stl(enplanements, "periodic"))
+```
+
+Data seems to have a trend. It also may be seasonal, according to last graph.
+
+```{r}
+nsd<-nsdiffs(enplanements)
+enpla_d<-diff(enplanements, lag=frequency(enplanements), differences = nsd)
+```
+```{r, echo=F}
+plot(enpla_d)
+acf(enpla_d)
+kpss.test(enpla_d)
+```
+
+After applying seasonal differencing with 1 difference, we are using $kpss.test$ to determine if now data is stationary. Test gives a p-value higher than 0.05, which means that we cannot deny null hypothesis that time series is stationary.
+
+####(e) visitors
+
+```{r, echo=F}
+plot(visitors)
+acf(visitors)
+plot(stl(visitors, "periodic"))
+```
+
+Data seems to have a trend. It also may be seasonal, according to last graph.
+
+```{r}
+nsds<-nsdiffs(visitors)
+visit_d<-diff(visitors, lag=frequency(visitors), differences = nsds)
+```
+```{r, echo=F}
+plot(visit_d)
+acf(visit_d)
+adf.test(visit_d, alternative = "stationary")
+```
+
+After applying seasonal differencing with 1 difference, we are using $adf.test$ to determine if now data is stationary. Test gives a p-value smaller than 0.05, which means that we can deny null hypothesis and accept that the time series is stationary.
+
+##TASK 13.2
+
+###Why is a Box-Cox transformation unhelpful for the cangas data?
+```{r, echo=F}
+plot(cangas)
+hist(cangas)
+kc<-BoxCox.lambda(cangas)
+cangas_b<-BoxCox(cangas, lambda=kc)
+plot(cangas_b, main="Data after Box-cox transformation")
+hist(cangas_b, main="Histogram of data after Box-cox transformation")
+```
+
+Box-cox transformation is helpful, when after applying the transformation, data becomes more regular and normal. In this particular situation, the variance of the data is not so different in different periods of time, so Box-cox does not give us the transformation we were hoping for.
+
+##TASK 13.3
+
+###Download the data at http://robjhyndman.com/data/retail.xls. Choose one of the series and find an appropriate Box-Cox transformation and order of differencing in order to obtain stationary data.
+
+At first, we have to read the data and transform it into time series.
+
+```{r}
+setwd(getwd())
+dat<-read.csv2("retail.csv", sep = ";")
+dat<-ts(dat, deltat = 1/12, start = c(1982, 4))
+dat<-dat[,-1]
+```
+
+After doing so, we are ready to have a look at the data.
+
+```{r, echo=F}
+head(dat)
+plot(dat)
+tsdisplay(dat)
+```
+
+We have a monthly data of total turnover of industry in Victoria from April, 1982, to December, 2007. It is not stationary, so we have to use one of the techniques to make it stationary.
+
+```{r, echo = F}
+par(mfrow=c(2,2))
+plot(dat, main="Original data") 
+hist(dat)
+plot(BoxCox(dat, lambda=BoxCox.lambda(dat)), main="Data transformed by Box-cox")
+hist(BoxCox(dat, lambda=BoxCox.lambda(dat)), main="Histogram of transformed data")
+```
+
+After Box-cox transformation, data is a little bit more regular.
+
+```{r}
+dat_d<-diff(dat, lag=frequency(dat), differences = nsdiffs(dat))
+```
+```{r,echo=F}
+par(mfrow=c(1,1))
+plot(dat_d, main="Transformated data")
+plot(stl(dat_d, "periodic"))
+acf(dat_d)
+```
+
+According to graphs, differenced data still seems to be seasonal.
+
+```{r}
+dat_ds<-diff(dat_d, differences = ndiffs(dat_d))
+```
+```{r, echo = F}
+plot(dat_ds, main="Transformated data")
+plot(stl(dat_ds, "periodic"))
+acf(dat_ds)
+```
+```{r, echo = F}
+kpss.test(dat_ds)
+adf.test(dat_ds)
+```
+
+After applying seasonal differencing with 1 difference and simple differencing with 1 difference, we are using $adf.test$ to determine if now the data is stationary. Test gives a p-value smaller than 0.05, which means that we can deny null hypothesis and accept that the time series is stationary. Just to make sure the data is stationary, We are using a different test called $kpss.test$. Test gives a p-value higher than 0.05, which means that we cannot deny null hypothesis that the time series is stationary.
+
