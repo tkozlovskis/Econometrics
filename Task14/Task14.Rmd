@@ -1,0 +1,344 @@
+---
+title: "Task14"
+author: "Tomas Kozlovskis"
+date: '2016 m gegužė 13 d '
+output: html_document
+---
+##TASK 14
+###1. For the wmurders data:
+####(a) If necessary, find a suitable Box-Cox transformation for the data
+
+```{r, include=F}
+library(fpp)
+```
+
+Firstly, let's have a look at our time series. We have monthly female murder rate in the USA (per 100000 citizens).
+
+```{r, echo=F}
+plot(wmurders)
+```
+
+There is no clear cyclicity or trend in the data given. We can try to apply Box-Cox transformation in order to acquire more normal and stable dataset.
+
+```{r, echo=F}
+wmurders1<-BoxCox(wmurders, BoxCox.lambda(wmurders))
+plot(wmurders1)
+```
+
+Box-Cox transformation is not useful, because it does not give more normal or less fluctuating data.
+
+In order to choose the order for ARIMA model, we have to make series stationary. We will be using differencing in order to obtain stationary data.
+
+```{r}
+dat.set<-diff(wmurders, ndiffs(wmurders))
+plot(dat.set)
+acf(dat.set)
+pacf(dat.set)
+```
+
+The data now looks like stationary.
+
+```{r}
+adf.test(dat.set)
+```
+
+$adf.test$ gives a value lower than 0.05, which means that we can accept the alternative hypothesis which states that data is stationary.
+
+
+####(b) Fit a suitable ARIMA model to the transformed data using auto.arima()
+
+```{r}
+fit.auto<-auto.arima(wmurders)
+plot(forecast(fit.auto,h=10),include=80)
+AIC(fit.auto)
+```
+
+Looks like the forecast using $auto.arima$ is highly influenced by drop of female murders from 1990 until 2004.
+
+####(c) Try some other plausible models by experimenting with the orders chosen
+
+```{r}
+fit.1<-arima(wmurders, order=c(5,2,0))
+AIC(fit.1)
+```
+
+```{r}
+fit.2<-arima(wmurders, order=c(0,2,3))
+AIC(fit.2)
+```
+
+```{r}
+fit.3<-arima(wmurders, order=c(2,2,4))
+AIC(fit.3)
+```
+
+####(d) Choose what you think is the best model and check the residual diagnostics
+
+We are choosing model $fit.3$, because it's AIC is the lowest. We have to check if model's residuals look like white noise.
+
+```{r, include=F}
+fit.res<-fit.3$residuals
+```
+```{r}
+mean(fit.res)
+```
+```{r, echo=F}
+plot(fit.res)
+acf(fit.res)
+hist(fit.res)
+```
+
+Residuals look like they are white noise - their mean is close to zero and their ACF graph shows that there is no autocorrelation.
+
+```{r}
+shapiro.test(fit.res)
+```
+
+Shapiro-Wilk test gives a p-value higher than 0.05, so we can accept null hypothesis which states that residuals are normal.
+
+```{r}
+adf.test(fit.res)
+```
+
+Model's residuals are actually a white noise, $adf.test$ gives p-value lower than 0.05, which means that we have to accept alternative hypothesis, that series is stationary.
+
+####(e) Produce forecasts of your fitted model. Do the forecasts look reasonable?
+
+```{r, echo=F}
+plot(forecast(fit.3, h=10))
+```
+
+####(f) Compare the results with what you would obtain using ets()(with no transformation).
+
+```{r, echo=F}
+fit.4<-ets(wmurders)
+plot(forecast(fit.4, h=10))
+```
+
+```{r}
+accuracy(fit.3)
+accuracy(fit.4)
+```
+
+Forecast of $fit.3$ gives smaller errors, so it is better than forecast using ETS.
+
+
+
+###2. For the usgdp data:
+####(a) If necessary, find a suitable Box-Cox transformation for the data
+
+Firstly, let's have a look at our time series. We have quartely US GDP data from 1947 until 2006.
+
+```{r, echo=F}
+plot(usgdp)
+hist(usgdp)
+```
+
+There is a clear trend in the data given. We can try to apply Box-Cox transformation in order to acquire more normal and stable dataset.
+
+```{r, echo=F}
+usgdp1<-BoxCox(usgdp, BoxCox.lambda(usgdp))
+plot(usgdp1)
+hist(usgdp1)
+```
+
+Box-Cox transformation is useful, because it gives slightly more balanced and normal data.
+
+In order to choose the order for ARIMA model, we have to make series stationary. We will be using differencing in order to obtain stationary data.
+
+```{r}
+dat.set2<-diff(usgdp1, ndiffs(usgdp1))
+plot(dat.set2)
+acf(dat.set2)
+pacf(dat.set2)
+```
+
+The data now looks like stationary.
+
+```{r}
+adf.test(dat.set2)
+```
+
+$adf.test$ gives a value lower than 0.05, which means that we have to accept alternative hypothesis which states that data is stationary.
+
+
+####(b) Fit a suitable ARIMA model to the transformed data using auto.arima()
+
+```{r}
+fit.auto.2<-auto.arima(usgdp1)
+AIC(fit.auto.2)
+```
+
+####(c) Try some other plausible models by experimenting with the orders chosen
+
+```{r}
+fit.1.2<-arima(usgdp1, order=c(12,1,0))
+AIC(fit.1.2)
+```
+
+```{r}
+fit.2.2<-arima(usgdp1, order=c(0,1,2))
+AIC(fit.2.2)
+```
+
+```{r}
+fit.3.2<-arima(usgdp1, order=c(14,1,2))
+AIC(fit.3.2)
+```
+
+####(d) Choose what you think is the best model and check the residual diagnostics
+
+We are choosing model $fit.auto.2$, because it's AIC is the lowest. We have to check if residuals look like white noise.
+
+```{r, include=F}
+fit.res.2<-fit.auto.2$residuals
+```
+```{r}
+mean(fit.res.2)
+```
+```{r, echo=F}
+plot(fit.res.2)
+acf(fit.res.2)
+hist(fit.res.2)
+```
+
+Residuals look like they are white noise - their mean is close to zero and their ACF graph shows that there is no autocorrelation.
+
+```{r}
+adf.test(fit.res.2)
+```
+
+Model's residuals are actually a white noise, $adf.test$ gives p-value lower than 0.05, which means that we have to accept alternative hypothesis, which states that series is stationary.
+
+####(e) Produce forecasts of your fitted model. Do the forecasts look reasonable?
+
+```{r, echo=F}
+plot(forecast(fit.auto.2,h=20))
+```
+
+####(f) Compare the results with what you would obtain using ets()(with no transformation).
+
+```{r, echo=F}
+fit.4.2<-ets(usgdp)
+plot(forecast(fit.4.2, h=20))
+```
+
+```{r}
+accuracy(fit.auto.2)
+accuracy(fit.4.2)
+```
+
+Forecast of $fit.auto.2$ gives smaller errors, so it is better than forecast using ETS.
+
+
+
+###3. For the mcopper data:
+####(a) If necessary, find a suitable Box-Cox transformation for the data
+
+Firstly, let's have a look at our time series. We have monthly copper prices of time series format.
+
+```{r, echo=F}
+plot(mcopper)
+hist(mcopper)
+```
+
+There is no clear cyclicity or trend in the data given. We can try to apply Box-Cox transformation in order to acquire more normal and stable dataset.
+
+```{r, echo=F}
+mcopper1<-BoxCox(mcopper, BoxCox.lambda(mcopper))
+plot(mcopper1)
+hist(mcopper1)
+```
+
+Box-Cox transformation is useful, time series looks more balanced and normal now.
+
+In order to choose the order for ARIMA model, we have to make series stationary. We will be using differencing in order to obtain stationary data.
+
+```{r}
+dat.set.3<-diff(mcopper1, ndiffs(mcopper1))
+plot(dat.set.3)
+acf(dat.set.3)
+pacf(dat.set.3)
+```
+
+The data now looks like stationary.
+
+```{r}
+adf.test(dat.set.3)
+```
+
+$adf.test$ gives a value lower than 0.05, which means that we accept alternative hypothesis which states that data is stationary.
+
+
+####(b) Fit a suitable ARIMA model to the transformed data using auto.arima()
+
+```{r}
+fit.auto.3<-auto.arima(mcopper1)
+AIC(fit.auto.3)
+```
+
+####(c) Try some other plausible models by experimenting with the orders chosen
+
+```{r}
+fit.1.3<-arima(mcopper1, order=c(1,1,0))
+AIC(fit.1.3)
+```
+
+```{r}
+fit.2.3<-arima(mcopper1, order=c(0,1,2))
+AIC(fit.2.3)
+```
+
+```{r}
+fit.3.3<-arima(mcopper1, order=c(2,1,0))
+AIC(fit.3.3)
+```
+
+####(d) Choose what you think is the best model and check the residual diagnostics
+
+We are choosing model $fit.auto.3$, because it's AIC is the lowest. We have to check if residuals look like white noise.
+
+```{r, include=F}
+fit.res.3<-fit.auto.3$residuals
+```
+```{r}
+mean(fit.res.3)
+```
+```{r, echo=F}
+plot(fit.res.3)
+acf(fit.res.3)
+hist(fit.res.3)
+```
+
+Residuals look like they are white noise - their mean is close to zero and their ACF graph shows that there is no autocorrelation.
+
+
+```{r}
+adf.test(fit.res.3)
+```
+
+Model's residuals are actually a white noise, $adf.test$ gives p-value lower than 0.05, which means that we have to accept alternative hypothesis, which states that series is stationary.
+
+####(e) Produce forecasts of your fitted model. Do the forecasts look reasonable?
+
+```{r, echoe=F}
+plot(forecast(fit.auto.3, h=25))
+```
+
+####(f) Compare the results with what you would obtain using ets()(with no transformation).
+
+```{r, echo=F}
+fit.4.3<-ets(mcopper)
+plot(forecast(fit.4.3, h=25))
+```
+
+```{r}
+accuracy(fit.auto.3)
+accuracy(fit.4.3)
+```
+
+Forecast of $fit.auto.3$ gives smaller errors, so it is better than forecast using ETS.
+
+###Conclusion
+
+####Auto ARIMA function does not always give the best forecasts. However, forecasting using ARIMA seems to be more accurate than forecasting with ETS, because for all of the time series that were tested, ARIMA forecasts were more accurate.
