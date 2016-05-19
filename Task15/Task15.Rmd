@@ -1,0 +1,125 @@
+---
+title: "Task15"
+author: "Tomas Kozlovskis"
+date: '2016 m gegužė 18 d '
+output: html_document
+---
+
+```{r, include=FALSE}
+library(fpp)
+```
+
+##TASK 15
+
+### We have the data of manufacturer's stocks of evaporated and sweetened condensed milk. For the following data:
+
+####(a) Do the data need transforming? If so, find a suitable transformation.
+
+```{r, echo=F}
+plot(condmilk)
+acf(condmilk)
+hist(condmilk)
+```
+
+Data does not look balanced or normal. We can try to use Box-Cox transformation to make it more stable and normal.
+
+```{r, echo=F}
+milk<-BoxCox(condmilk, BoxCox.lambda(condmilk))
+plot(milk)
+hist(milk)
+```
+
+Box-Cox transformation is not useful, it does not make the data look stable and normal.
+
+####(b) Are the data stationary? If not, find an appropriate differencing which yields stationary data.
+
+ACF graph shows seasonality, we can make the data stationary by differencing it.
+
+```{r}
+milk<-diff(condmilk, differences=4)
+```
+```{r, echo=F}
+acf(milk)
+plot(milk)
+```
+```{r}
+kpss.test(milk)
+```
+
+Data is stationary, $kpss.test$ gives a p-value higher than 0.05 and we can accept null hypothesis which states that data is stationary.
+
+####(c) Identify a couple of ARIMA models that might be useful in describing the time series. Which of your models is the best according to their AIC values?
+
+We will identify some useful models with the help of ACF and PACF graphs.
+
+```{r, echo=F}
+acf(milk)
+pacf(milk)
+```
+
+```{r}
+fit.auto<-auto.arima(condmilk)
+fit.auto$aicc
+```
+
+There are spikes at lags 1,2,3 and 4, which would suggest that seasonal AR(3) term and non-seasonal AR(4) term.
+
+```{r}
+fit.1<-arima(condmilk, order = c(4,0,0), seasonal = list(order = c(3,0,0), period=12))
+AIC(fit.1)
+```
+
+```{r}
+fit.2<-arima(condmilk, order = c(4,0,0), seasonal = list(order = c(3,0,1), period=12))
+AIC(fit.2)
+```
+
+```{r}
+fit.3<-arima(condmilk, order = c(4,0,1), seasonal = list(order = c(3,0,0), period=12))
+AIC(fit.3)
+```
+
+####(d) Estimate the parameters of your best model and do diagnostic testing on the residuals. Do the residuals resemble white noise? If not, try to find another ARIMA model which fits better.
+
+$fit.1$ model gives the best AIC, so we are choosing to test it's residuals.
+
+```{r,echo=F}
+fit.res<-fit.1$res
+plot(fit.res)
+acf(fit.res)
+hist(fit.res)
+```
+
+Residuals do not look like they are autocorrelated, they also look stationary.
+
+```{r}
+Box.test(fit.res,lag=12, type="Ljung")
+```
+
+The residuals are stationary and independent, Box-test gives a p-value larger than 0.05, which means that we accept null hypothesis stating that residuals are independent. They tend to look like white noise because of their stationarity and independence.
+
+####(e) Forecast the next 24 months of data using your preferred model.
+
+```{r, echo=F}
+plot(forecast(fit.1, h=25))
+```
+
+####(f) Compare the forecasts obtained using ets().
+
+```{r}
+fit.ets<-ets(condmilk)
+plot(forecast(fit.ets, h=25))
+```
+
+Forecast using ETS seems to be influenced by a drop of manufacturer's stocks in 1981 and tends to be a little more balanced.
+
+```{r}
+accuracy(fit.1)
+accuracy(fit.ets)
+```
+
+$fit.ets$ model's forecast gives better accuracy than the forecast using $fit.1$ model.
+
+###CONCLUSION
+
+###Unlike in forecasting of non-seasonal data, for forecasting of seasonal data it is better to forecast using ETS function.
