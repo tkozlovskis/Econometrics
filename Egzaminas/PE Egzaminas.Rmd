@@ -1,0 +1,302 @@
+---
+title: "PE Egzaminas"
+author: "Tomas Kozlovskis"
+date: '2016 m gegužė 30 d '
+output: html_document
+---
+
+#P.E. II EGZAMINAS
+
+```{r setup, include=FALSE}
+library(fpp)
+library(car)
+library(dynlm)
+```
+
+##1 užduotis
+
+###a
+
+```{r}
+```
+
+###b
+
+```{r}
+Laimejimas <- function(){
+  bal<-0
+  akutes<-sum(sample(6, size=2, replace = TRUE))
+  m<-sample(c(0,1), size=1, replace=T)
+  if(m==1){
+    bal=akutes+bal
+  }
+      else
+        bal=bal-akutes
+  return(bal)
+}
+Laimejimas()
+```
+
+Generavimas
+
+```{r}
+for(i in 1000){
+  n<-Laimejimas()
+  imtis[i]<-n
+}
+imtis
+```
+
+
+
+##3 užduotis
+
+###1
+####a
+
+Ivertiname tiesine regresija.
+
+```{r}
+mod<-lm(M1Germany$logm1~lag(M1Germany$logprice, 1))
+```
+
+####b
+
+Issisaugome modelio liekanas.
+
+```{r}
+serOrg<-ts(mod$residuals,start=c(1960,1), frequency = 4)
+```
+
+
+####c
+
+```{r, echo=F}
+tsdisplay(serOrg)
+```
+
+Duomenyse matomas sezoniskumas - sezonas trunka ketvircius, viena ketvirti grafikas kyla i virsu, kitais leidziasi zemyn.
+
+Naudoju STL funkcija.
+
+```{r}
+svyr<-stl(serOrg, s.window = "periodic")
+plot(svyr)
+```
+
+STL funkcija pritaikiau, bet nemoku atimti reiksmiu.
+
+```{r}
+nsdiffs(serOrg)
+ser1<-diff(serOrg, lag= 2)
+plot(ser1, main = "Diferencijuotu duomenu sklaidos diagrama")
+kpss.test(ser1)
+```
+
+Pritaikius lagu skaiciu lygu 2, serOrg duomenys tampa stacionarus. Diferencijavimo eile yra 0.
+
+```{r, include=F}
+ser<-serOrg
+```
+
+Duomenys yra stacionarūs, kpss.test funkcija gražina p-value daugiau už 0.05.
+
+####e
+
+```{r}
+hist(ser)
+```
+
+Duomenys yra pakankamai normalus ir reguliarus, todel Box Cox transformacija nebutu naudinga.
+
+###2
+####a
+
+```{r}
+mod1<-ets(ser)
+plot(forecast(mod1, h=20))
+```
+
+####b
+
+Pasirenku HoltWinters funkcija, nes su ja galima eksponentiskai suglodinti sezoninius duomenis, alfa ir beta parametru nekeiciu, nes modelis juos parenka geriausiai.
+
+```{r}
+mod2<-hw(ser)
+plot(forecast(mod2, h=20))
+```
+
+####c
+
+```{r}
+mod3<-auto.arima(ser)
+plot(forecast(mod3, h=20))
+```
+
+Pasiulyta integravimo eile sutampa, ji taip pat yra lygi 0.
+
+####d
+
+Renkantis parametrus reikia ACF ir PACF grafiku.
+
+```{r, echo=F}
+acf(ser1)
+pacf(ser1)
+```
+
+Eksponentinis suoliu mazejimas ACF grafike rodo, jog sezoniskoje AR dalyje turetu buti 1.
+Perioda pasirenku 2, nes tai yra per kiek laiko vienetu ivyksta visi pokyciai.
+
+```{r}
+mod4.1<-arima(ser, order = c(0,0,0), seasonal = list(order = c(1 , 0, 0), period =2))
+plot(forecast(mod4, h=20))
+```
+
+Kitam modeliui pasirenku auto.arima parametrus, bet pakeiciu perioda.
+
+```{r}
+mod4.2<-arima(ser, order = c(2,0,1), seasonal = list(order = c(1 , 0, 1), period =2))
+plot(forecast(mod4, h=20))
+```
+
+Palyginu abieju modeliu AIC ir RMSE, kad issiaiskinciau kuris geresnis/
+
+```{r}
+AIC(mod4.1)
+AIC(mod4.2)
+accuracy(mod4.1)
+accuracy(mod4.2)
+```
+
+mod4.2 geresnis, todel ji rinksimes tolesniai diagnostikai.
+
+```{r}
+mod4<-mod4.2
+```
+
+###3
+####a
+
+```{r,echo=F}
+mod1Res<-mod1$res
+plot(mod1Res)
+acf(mod1Res)
+hist(mod1Res)
+```
+
+mod1 modelio liekanos yra panasios i baltaji triuksma, jos yra nekoreliuotos ir panasios i normalias. Atliekame ADF testa.
+
+```{r}
+adf.test(mod1Res)
+```
+
+P-value maziau uz 0.05, todel galime priimti H1 hipoteze teigiancia, kad eilute yra stacionari, taigi liekanos yra baltas triuksmas.
+
+```{r,echo=F}
+mod2Res<-mod2$res
+plot(mod2Res)
+acf(mod2Res)
+hist(mod2Res)
+```
+
+mod2 modelio liekanos yra panasios i baltaji triuksma, jos yra nekoreliuotos ir panasios i normalias. Atliekame ADF testa.
+
+```{r}
+adf.test(mod2Res)
+```
+
+P-value maziau uz 0.05, todel galime priimti H1 hipoteze teigiancia, kad eilute yra stacionari, taigi liekanos yra baltas triuksmas.
+
+```{r,echo=F}
+mod3Res<-mod3$res
+plot(mod3Res)
+acf(mod3Res)
+hist(mod3Res)
+```
+
+mod3 modelio liekanos yra panasios i baltaji triuksma, jos yra nekoreliuotos ir panasios i normalias. Atliekame ADF testa.
+
+```{r}
+adf.test(mod3Res)
+```
+
+P-value maziau uz 0.05, todel galime priimti H1 hipoteze teigiancia, kad eilute yra stacionari, taigi liekanos yra baltas triuksmas.
+
+```{r,echo=F}
+mod4Res<-mod4$res
+plot(mod4Res)
+acf(mod4Res)
+hist(mod4Res)
+```
+
+mod4 modelio liekanos yra panasios i baltaji triuksma, jos yra nekoreliuotos ir panasios i normalias. Atliekame ADF testa.
+
+```{r}
+adf.test(mod4Res)
+```
+
+P-value maziau uz 0.05, todel galime priimti H1 hipoteze teigiancia, kad eilute yra stacionari, taigi liekanos yra baltas triuksmas.
+####b
+
+```{r}
+trainSet<-window(ser, end = c(1987,4))
+testSet<-window(ser, start = c(1988, 1))
+````
+
+####c
+
+```{r}
+mod1<-ets(trainSet)
+```
+
+```{r}
+mod2<-hw(trainSet)
+```
+
+```{r}
+mod3<-auto.arima(trainSet)
+```
+
+```{r}
+mod4<-arima(trainSet, order = c(2,0,1), seasonal = list(order = c(1 , 0, 1), period =2))
+```
+
+###d
+
+```{r, echo=F}
+plot(forecast(mod1, h=20))
+lines(testSet, add=T, lwd=2, col=3)
+plot(forecast(mod2, h=20))
+lines(testSet, add=T, lwd=2, col=3)
+plot(forecast(mod3, h=20))
+lines(testSet, add=T, lwd=2, col=3)
+plot(forecast(mod4, h=20))
+lines(testSet, col=3, lwd=2, add=T)
+```
+
+
+```{r}
+accuracy(mod1)
+accuracy(mod2)
+accuracy(mod3)
+accuracy(mod4)
+```
+
+mod3 RMSE geriausias, todel renkames ji.
+
+```{r}
+modMain<-mod3
+```
+
+###4
+
+Funkcija turetu atrodyti taip, bet ji negali perskaityti laiko parametro.
+
+```{r}
+tikslumas<-function(i){
+    trainSet = window(ser, start=1, end=i)
+    testSet = window(ser, start= i+1)
+    ans = accuracy(modMain, testSet)
+    return(ans)
+}
+``` 
