@@ -37,16 +37,6 @@ Laimejimas <- function(){
 Laimejimas()
 ```
 
-Generavimas
-
-```{r}
-for(i in 1000){
-  n<-Laimejimas()
-  imtis[i]<-n
-}
-imtis
-```
-
 
 
 ##3 užduotis
@@ -114,7 +104,6 @@ Duomenys yra pakankamai normalus ir reguliarus, todel Box Cox transformacija neb
 
 ```{r}
 mod1<-ets(ser)
-plot(forecast(mod1, h=20))
 ```
 
 ####b
@@ -123,14 +112,12 @@ Pasirenku HoltWinters funkcija, nes su ja galima eksponentiskai suglodinti sezon
 
 ```{r}
 mod2<-hw(ser)
-plot(forecast(mod2, h=20))
 ```
 
 ####c
 
 ```{r}
 mod3<-auto.arima(ser)
-plot(forecast(mod3, h=20))
 ```
 
 Pasiulyta integravimo eile sutampa, ji taip pat yra lygi 0.
@@ -149,14 +136,12 @@ Perioda pasirenku 2, nes tai yra per kiek laiko vienetu ivyksta visi pokyciai.
 
 ```{r}
 mod4.1<-arima(ser, order = c(0,0,0), seasonal = list(order = c(1 , 0, 0), period =2))
-plot(forecast(mod4, h=20))
 ```
 
 Kitam modeliui pasirenku auto.arima parametrus, bet pakeiciu perioda.
 
 ```{r}
 mod4.2<-arima(ser, order = c(2,0,1), seasonal = list(order = c(1 , 0, 1), period =2))
-plot(forecast(mod4, h=20))
 ```
 
 Palyginu abieju modeliu AIC ir RMSE, kad issiaiskinciau kuris geresnis/
